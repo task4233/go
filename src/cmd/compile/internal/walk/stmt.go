@@ -127,9 +127,17 @@ func walkStmt(n ir.Node) ir.Node {
 		n := n.(*ir.ForStmt)
 		return walkFor(n)
 
+	case ir.OFOUR:
+		n := n.(*ir.FourStmt)
+		return walkFour(n)
+
 	case ir.OIF:
 		n := n.(*ir.IfStmt)
 		return walkIf(n)
+
+	case ir.OUNLESS:
+		n := n.(*ir.UnlessStmt)
+		return walkUnless(n)
 
 	case ir.ORETURN:
 		n := n.(*ir.ReturnStmt)
@@ -191,6 +199,19 @@ func walkFor(n *ir.ForStmt) ir.Node {
 	return n
 }
 
+// walkFour walks an OFOUR node.
+func walkFour(n *ir.FourStmt) ir.Node {
+	if n.Cond != nil {
+		init := ir.TakeInit(n.Cond)
+		walkStmtList(init)
+		n.Cond = walkExpr(n.Cond, &init)
+		n.Cond = ir.InitExpr(init, n.Cond)
+	}
+	n.Post = walkStmt(n.Post)
+	walkStmtList(n.Body)
+	return n
+}
+
 // validGoDeferCall reports whether call is a valid call to appear in
 // a go or defer statement; that is, whether it's a regular function
 // call without arguments or results.
@@ -226,4 +247,12 @@ func walkIf(n *ir.IfStmt) ir.Node {
 	walkStmtList(n.Body)
 	walkStmtList(n.Else)
 	return n
+}
+
+// walkUnless walks an OUNLESS node.
+func walkUnless(n *ir.UnlessStmt) ir.Node {
+	n.Cond = walkExpr(n.Cond, n.PtrInit())
+	n.Cond = ir.NewUnaryExpr(n.Pos(), ir.ONOT, n.Cond)
+	walkStmtList(n.Body)
+	return ir.NewIfStmt(n.Pos(), n.Cond, n.Body, []ir.Node{})
 }
