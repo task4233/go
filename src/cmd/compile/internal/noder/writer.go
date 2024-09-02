@@ -1325,9 +1325,17 @@ func (w *writer) stmt1(stmt syntax.Stmt) {
 		w.Code(stmtFor)
 		w.forStmt(stmt)
 
+	case *syntax.FourStmt:
+		w.Code(stmtFour)
+		w.fourStmt(stmt)
+
 	case *syntax.IfStmt:
 		w.Code(stmtIf)
 		w.ifStmt(stmt)
+
+	case *syntax.UnlessStmt:
+		w.Code(stmtUnless)
+		w.unlessStmt(stmt)
 
 	case *syntax.LabeledStmt:
 		w.Code(stmtLabel)
@@ -1534,6 +1542,20 @@ func (w *writer) distinctVars(stmt *syntax.ForStmt) bool {
 	return is122 || lv > 0 && lv != 3
 }
 
+func (w *writer) fourStmt(stmt *syntax.FourStmt) {
+	w.Sync(pkgbits.SyncFourStmt)
+	w.openScope(stmt.Pos())
+
+	w.pos(stmt)
+	w.stmt(stmt.Init)
+	w.optExpr(stmt.Cond)
+	w.stmt(stmt.Post)
+
+	w.blockStmt(stmt.Body)
+	w.Bool(base.Debug.LoopVar > 0)
+	w.closeAnotherScope()
+}
+
 func (w *writer) ifStmt(stmt *syntax.IfStmt) {
 	cond := w.p.staticBool(&stmt.Cond)
 
@@ -1551,6 +1573,16 @@ func (w *writer) ifStmt(stmt *syntax.IfStmt) {
 	if cond <= 0 {
 		w.stmt(stmt.Else)
 	}
+	w.closeAnotherScope()
+}
+
+func (w *writer) unlessStmt(stmt *syntax.UnlessStmt) {
+	w.Sync(pkgbits.SyncUnlessStmt)
+	w.openScope(stmt.Pos())
+	w.pos(stmt)
+	w.stmt(stmt.Init)
+	w.expr(stmt.Cond)
+	w.blockStmt(stmt.Then)
 	w.closeAnotherScope()
 }
 

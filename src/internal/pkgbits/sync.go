@@ -114,7 +114,9 @@ const (
 	SyncStmts
 	SyncBlockStmt
 	SyncIfStmt
+	SyncUnlessStmt
 	SyncForStmt
+	SyncFourStmt
 	SyncSwitchStmt
 	SyncRangeStmt
 	SyncCaseClause

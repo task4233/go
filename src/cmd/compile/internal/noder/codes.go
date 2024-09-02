@@ -25,7 +25,9 @@ const (
 	stmtCall
 	stmtReturn
 	stmtIf
+	stmtUnless
 	stmtFor
+	stmtFour
 	stmtSwitch
 	stmtSelect
 )

@@ -1730,8 +1730,14 @@ func (r *reader) stmt1(tag codeStmt, out *ir.Nodes) ir.Node {
 	case stmtFor:
 		return r.forStmt(label)
 
+	case stmtFour:
+		return r.fourStmt(label)
+
 	case stmtIf:
 		return r.ifStmt()
+
+	case stmtUnless:
+		return r.unlessStmt()
 
 	case stmtLabel:
 		pos := r.pos()
@@ -1856,6 +1862,23 @@ func (r *reader) forStmt(label *types.Sym) ir.Node {
 	return stmt
 }
 
+func (r *reader) fourStmt(label *types.Sym) ir.Node {
+	r.Sync(pkgbits.SyncFourStmt)
+
+	r.openScope()
+
+	pos := r.pos()
+	init := r.stmt()
+	cond := r.optExpr()
+	post := r.stmt()
+	body := r.blockStmt()
+	r.closeAnotherScope()
+
+	stmt := ir.NewFourStmt(pos, init, cond, post, body)
+	stmt.Label = label
+	return stmt
+}
+
 func (r *reader) ifStmt() ir.Node {
 	r.Sync(pkgbits.SyncIfStmt)
 	r.openScope()
@@ -1888,6 +1911,20 @@ func (r *reader) ifStmt() ir.Node {
 	}
 
 	n := ir.NewIfStmt(pos, cond, then, els)
+	n.SetInit(init)
+	return n
+}
+
+func (r *reader) unlessStmt() ir.Node {
+	r.Sync(pkgbits.SyncUnlessStmt)
+	r.openScope()
+	pos := r.pos()
+	init := r.stmts()
+	cond := r.expr()
+	then := r.blockStmt()
+	r.closeAnotherScope()
+
+	n := ir.NewUnlessStmt(pos, cond, then)
 	n.SetInit(init)
 	return n
 }
