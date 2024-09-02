@@ -410,7 +410,22 @@ type (
 		stmt
 	}
 
+	UnlessStmt struct {
+		Init SimpleStmt
+		Cond Expr
+		Then *BlockStmt
+		stmt
+	}
+
 	ForStmt struct {
+		Init SimpleStmt // incl. *RangeClause
+		Cond Expr
+		Post SimpleStmt
+		Body *BlockStmt
+		stmt
+	}
+
+	FourStmt struct {
 		Init SimpleStmt // incl. *RangeClause
 		Cond Expr
 		Post SimpleStmt

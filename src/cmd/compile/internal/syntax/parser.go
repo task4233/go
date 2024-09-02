@@ -317,6 +317,8 @@ const stopset uint64 = 1<<_Break |
 	1<<_Defer |
 	1<<_Fallthrough |
 	1<<_For |
+	1<<_Four |
+	1<<_Unless |
 	1<<_Go |
 	1<<_Goto |
 	1<<_If |
@@ -2292,12 +2294,31 @@ func (p *parser) forStmt() Stmt {
 	return s
 }
 
+func (p *parser) fourStmt() Stmt {
+	if trace {
+		defer p.trace("fourStmt")()
+	}
+
+	s := new(FourStmt)
+	s.pos = p.pos()
+
+	s.Init, s.Cond, s.Post = p.header(_Four)
+	s.Body = p.blockStmt("four clause")
+
+	// Fdump(os.Stderr, s)
+
+	return s
+}
+
 func (p *parser) header(keyword token) (init SimpleStmt, cond Expr, post SimpleStmt) {
 	p.want(keyword)
 
 	if p.tok == _Lbrace {
 		if keyword == _If {
 			p.syntaxError("missing condition in if statement")
+			cond = p.badExpr()
+		} else if keyword == _Unless {
+			p.syntaxError("missing condition in unless statement")
 			cond = p.badExpr()
 		}
 		return
@@ -2352,6 +2373,21 @@ func (p *parser) header(keyword token) (init SimpleStmt, cond Expr, post SimpleS
 					p.syntaxErrorAt(a.Pos(), "cannot declare in post statement of for loop")
 				}
 			}
+		} else if keyword == _Four {
+			if p.tok != _Semi {
+				if p.tok == _Lbrace {
+					p.syntaxError("expected four loop condition")
+					goto done
+				}
+				condStmt = p.simpleStmt(nil, 0 /* range not permitted */)
+			}
+			p.want(_Semi)
+			if p.tok != _Lbrace {
+				post = p.simpleStmt(nil, 0 /* range not permitted */)
+				if a, _ := post.(*AssignStmt); a != nil && a.Op == Def {
+					p.syntaxErrorAt(a.Pos(), "cannot declare in post statement of four loop")
+				}
+			}
 		} else if p.tok != _Lbrace {
 			condStmt = p.simpleStmt(nil, keyword)
 		}
@@ -2369,6 +2405,15 @@ done:
 				p.syntaxErrorAt(semi.pos, fmt.Sprintf("unexpected %s, expected { after if clause", semi.lit))
 			} else {
 				p.syntaxErrorAt(semi.pos, "missing condition in if statement")
+			}
+			b := new(BadExpr)
+			b.pos = semi.pos
+			cond = b
+		} else if keyword == _Unless && semi.pos.IsKnown() {
+			if semi.lit != "semicolon" {
+				p.syntaxErrorAt(semi.pos, fmt.Sprintf("unexpected %s, expected { after unless clause", semi.lit))
+			} else {
+				p.syntaxErrorAt(semi.pos, "missing condition in unless statement")
 			}
 			b := new(BadExpr)
 			b.pos = semi.pos
@@ -2428,6 +2473,22 @@ func (p *parser) ifStmt() *IfStmt {
 			p.advance(_Name, _Rbrace)
 		}
 	}
+
+	return s
+}
+
+func (p *parser) unlessStmt() *UnlessStmt {
+	if trace {
+		defer p.trace("unlessStmt")()
+	}
+
+	s := new(UnlessStmt)
+	s.pos = p.pos()
+
+	s.Init, s.Cond, _ = p.header(_Unless)
+	s.Then = p.blockStmt("unless clause")
+
+	// Fdump(os.Stderr, s)
 
 	return s
 }
@@ -2597,6 +2658,9 @@ func (p *parser) stmtOrNil() Stmt {
 	case _For:
 		return p.forStmt()
 
+	case _Four:
+		return p.fourStmt()
+
 	case _Switch:
 		return p.switchStmt()
 
@@ -2605,6 +2669,9 @@ func (p *parser) stmtOrNil() Stmt {
 
 	case _If:
 		return p.ifStmt()
+
+	case _Unless:
+		return p.unlessStmt()
 
 	case _Fallthrough:
 		s := new(BranchStmt)
