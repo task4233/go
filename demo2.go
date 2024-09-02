@@ -5,8 +5,9 @@ import (
 )
 
 func main() {
-	const i = 1
-	unless i%2 == 0 {
-		fmt.Printf("%d is odd number\n", i)
+	var i int
+	fmt.Scan(&i)
+	if !(i == 0) {
+		fmt.Println(i)
 	}
 }
