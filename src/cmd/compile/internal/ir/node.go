@@ -265,8 +265,10 @@ const (
 	ODEFER    // defer Call
 	OFALL     // fallthrough
 	OFOR      // for Init; Cond; Post { Body }
+	OFOUR     // four Init; Cond; Post { Body }
 	OGOTO     // goto Label
 	OIF       // if Init; Cond { Then } else { Else }
+	OUNLESS   // unless Init; Cond { Body }
 	OLABEL    // Label:
 	OGO       // go Call
 	ORANGE    // for Key, Value = range X { Body }

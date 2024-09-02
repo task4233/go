@@ -49,10 +49,12 @@ var OpNames = []string{
 	OEQ:               "==",
 	OFALL:             "fallthrough",
 	OFOR:              "for",
+	OFOUR:             "four",
 	OGE:               ">=",
 	OGOTO:             "goto",
 	OGT:               ">",
 	OIF:               "if",
+	OUNLESS:           "unless",
 	OIMAG:             "imag",
 	OINLMARK:          "inlmark",
 	ODEREF:            "*",
@@ -279,8 +281,10 @@ var OpPrec = []int{
 	ODEFER:      -1,
 	OFALL:       -1,
 	OFOR:        -1,
+	OFOUR:       -1,
 	OGOTO:       -1,
 	OIF:         -1,
+	OUNLESS:     -1,
 	OLABEL:      -1,
 	OGO:         -1,
 	ORANGE:      -1,
@@ -294,7 +298,7 @@ var OpPrec = []int{
 // StmtWithInit reports whether op is a statement with an explicit init list.
 func StmtWithInit(op Op) bool {
 	switch op {
-	case OIF, OFOR, OSWITCH:
+	case OIF, OUNLESS, OFOR, OFOUR, OSWITCH:
 		return true
 	}
 	return false
@@ -405,6 +409,14 @@ func stmtFmt(n Node, s fmt.State) {
 			fmt.Fprintf(s, " else { %v }", n.Else)
 		}
 
+	case OUNLESS:
+		n := n.(*UnlessStmt)
+		if simpleinit {
+			fmt.Fprintf(s, "unless %v; %v { %v }", n.Init()[0], n.Cond, n.Body)
+		} else {
+			fmt.Fprintf(s, "unless %v { %v }", n.Cond, n.Body)
+		}
+
 	case OFOR:
 		n := n.(*ForStmt)
 		if !exportFormat { // TODO maybe only if FmtShort, same below
@@ -416,6 +428,32 @@ func stmtFmt(n Node, s fmt.State) {
 		if n.DistinctVars {
 			fmt.Fprint(s, " /* distinct */")
 		}
+		if simpleinit {
+			fmt.Fprintf(s, " %v;", n.Init()[0])
+		} else if n.Post != nil {
+			fmt.Fprint(s, " ;")
+		}
+
+		if n.Cond != nil {
+			fmt.Fprintf(s, " %v", n.Cond)
+		}
+
+		if n.Post != nil {
+			fmt.Fprintf(s, "; %v", n.Post)
+		} else if simpleinit {
+			fmt.Fprint(s, ";")
+		}
+
+		fmt.Fprintf(s, " { %v }", n.Body)
+
+	case OFOUR:
+		n := n.(*FourStmt)
+		if !exportFormat { // TODO maybe only if FmtShort, same below
+			fmt.Fprintf(s, "four loop")
+			break
+		}
+
+		fmt.Fprint(s, "four")
 		if simpleinit {
 			fmt.Fprintf(s, " %v;", n.Init()[0])
 		} else if n.Post != nil {
