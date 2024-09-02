@@ -74,6 +74,11 @@ func (e *escape) stmt(n ir.Node) {
 		e.block(n.Body)
 		e.block(n.Else)
 
+	case ir.OUNLESS:
+		n := n.(*ir.UnlessStmt)
+		e.discard(n.Cond)
+		e.block(n.Body)
+
 	case ir.OCHECKNIL:
 		n := n.(*ir.UnaryExpr)
 		e.discard(n.X)
@@ -81,6 +86,14 @@ func (e *escape) stmt(n ir.Node) {
 	case ir.OFOR:
 		n := n.(*ir.ForStmt)
 		base.Assert(!n.DistinctVars) // Should all be rewritten before escape analysis
+		e.loopDepth++
+		e.discard(n.Cond)
+		e.stmt(n.Post)
+		e.block(n.Body)
+		e.loopDepth--
+
+	case ir.OFOUR:
+		n := n.(*ir.FourStmt)
 		e.loopDepth++
 		e.discard(n.Cond)
 		e.stmt(n.Post)
